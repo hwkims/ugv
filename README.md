@@ -280,3 +280,6 @@ Raspberry Pi 4B/5에는 USB 카메라 📷가 장착되어 있어, 사용자는 
   https://theportalwiki.com/wiki/Turret_voice_lines
 https://www.waveshare.com/ugv-beast-ros2-kit.htm
 https://www.waveshare.com/wiki/UGV_Beast_PI_ROS2
+https://github.com/waveshareteam/ugv_rpi
+
+https://github.com/waveshareteam
