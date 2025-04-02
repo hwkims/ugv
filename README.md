@@ -278,3 +278,5 @@ Raspberry Pi 4B/5에는 USB 카메라 📷가 장착되어 있어, 사용자는 
 *   **로봇 안전:** LLM의 해석이 항상 완벽하지 않을 수 있으므로 비상 정지 수단(STOP 명령, 물리적 스위치 등)을 확보하고 안전한 장소에서 테스트를 시작해야 합니다.
 *   **기존 코드 탐색:** 제공된 "호스트 장치 (라즈베리 파이) 메인 프로그램" 및 "ROS2 오픈 소스 프로젝트" 코드를 깊이 탐색하여 하드웨어 제어 및 ROS 2 노드/토픽 상호작용 방법을 이해하는 것이 중요합니다.
   https://theportalwiki.com/wiki/Turret_voice_lines
+https://www.waveshare.com/ugv-beast-ros2-kit.htm
+https://www.waveshare.com/wiki/UGV_Beast_PI_ROS2
