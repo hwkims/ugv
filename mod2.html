@@ -1,0 +1,245 @@
+<html lang="en-US">
+  <head>
+    <title>WAVESHARE ROBOT - UGV Beast PI ROS2</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <style type="text/css">
+      body { font-family: Arial, sans-serif; }
+      .box1 { padding: 20px; }
+      .section_video { border: 1px solid #ccc; padding: 10px; }
+      .video_feed img { width: 100%; max-width: 640px; }
+      .controller { margin: 20px 0; }
+      .ctl9_base ul { list-style: none; padding: 0; display: flex; flex-wrap: wrap; }
+      .ctl9_base_btn, .ctl9_base_btn2 { width: 50px; height: 50px; margin: 5px; background: #ddd; cursor: pointer; }
+      .ctl9_middle { text-align: center; }
+      .ctl9_middle_pos { padding: 10px; background: #eee; cursor: pointer; }
+      .audio_input { margin: 20px 0; }
+      .audio-files { border: 1px dashed #ccc; padding: 10px; }
+      .mp3-controls button { margin: 5px; padding: 5px 10px; cursor: pointer; }
+      .code_input { margin: 20px 0; }
+      .api-key-section { margin: 10px 0; }
+      .api-key-section input { padding: 5px; width: 200px; }
+      .api-key-section button, #sendButton { padding: 5px 10px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+      #commandInput { width: 100%; height: 100px; }
+      .conversation-window {
+        position: fixed; bottom: 10px; right: 10px; width: 300px; height: 200px;
+        background: #fff; border: 1px solid #ccc; padding: 10px; overflow-y: auto;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      }
+      .conversation-window p { margin: 5px 0; }
+    </style>
+  </head>
+<body>
+    <main>
+        <div class="box1">
+            <section class="section_video box_outline">
+                <div class="video_feed">
+                    <div class="video"><img src="placeholder_video.jpg" alt="Video Feed Placeholder" /></div>
+                </div>
+                <div class="controller">
+                    <div class="ctl9_middle">
+                        <div class="ctl9_middle_pos">
+                            <div class="ctl9_middle_pos ctl9_middle_light">
+                                <div class="ctl9_middle_pos" id="funcBtn">FUNC</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="ctl9 ctl9_base">
+                        <ul>
+                            <li class="ctl9_base_btn" id="moveSlowRight"></li>
+                            <li class="ctl9_base_btn2" id="moveForward"></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="audio_input">
+                    <div class="audio-files">
+                        <div id="audioFiles" class="audio_list">
+                            <div id="audioFilesDrag" class="audio-drop">Drop audio files here!</div>
+                        </div>
+                    </div>
+                    <div class="mp3-controls">
+                        <button onclick="playMP3('1.mp3')">Play 1.mp3</button>
+                        <button onclick="playMP3('2.mp3')">Play 2.mp3</button>
+                        <button onclick="playMP3('3.mp3')">Play 3.mp3</button>
+                        <button onclick="playMP3('4.mp3')">Play 4.mp3</button>
+                        <button onclick="playMP3('5.mp3')">Play 5.mp3</button>
+                    </div>
+                </div>
+                <div class="code_input">
+                    <div>
+                        <div class="api-key-section">
+                            <input type="text" id="openaiApiKey" placeholder="Enter Open AI API Key">
+                            <button id="saveApiKey">Save Key</button>
+                        </div>
+                        <textarea type="text" id="commandInput" placeholder="Enter Command or Chat (e.g., 'ros2 launch ugv_slam gmapping.launch.py use_rviz:=true')"></textarea>
+                        <div><button id="sendButton">Send</button></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <div id="conversationWindow" class="conversation-window">
+        <p>Chat starts here...</p>
+    </div>
+    <script>
+      // Simulated WebSocket (standalone)
+      const socket = {
+        emit: (event, data) => {
+          console.log(`Emitting ${event}: ${data}`);
+          setTimeout(() => {
+            socket.on('ros2_response', `Simulated response for ${data}`);
+          }, 1000);
+        },
+        on: (event, callback) => {
+          window.addEventListener(event, (e) => callback(e.detail));
+        }
+      };
+
+      // Load API key from localStorage
+      const savedApiKey = localStorage.getItem('openaiApiKey');
+      if (savedApiKey) document.getElementById('openaiApiKey').value = savedApiKey;
+
+      // Save API key
+      document.getElementById('saveApiKey').addEventListener('click', () => {
+        const apiKey = document.getElementById('openaiApiKey').value.trim();
+        if (apiKey) {
+          localStorage.setItem('openaiApiKey', apiKey);
+          alert('API Key saved!');
+        } else {
+          alert('Please enter a valid API key.');
+        }
+      });
+
+      // Play MP3 files (placeholder audio)
+      function playMP3(filename) {
+        const audio = new Audio(`./audio/${filename}`);
+        audio.onerror = () => console.log(`Error loading ${filename}. Ensure file exists in ./audio/`);
+        audio.play().catch(() => console.log('Audio playback failed (CORS or missing file)'));
+        const convo = document.getElementById('conversationWindow');
+        convo.innerHTML += `<p>Playing: ${filename}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+      }
+
+      // Robot control simulation
+      function cmdSend(cmd, param1, param2) {
+        const convo = document.getElementById('conversationWindow');
+        convo.innerHTML += `<p>Command sent: ${cmd}, ${param1}, ${param2}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+      }
+
+      function cmdJsonCmd(data) {
+        const convo = document.getElementById('conversationWindow');
+        convo.innerHTML += `<p>Movement command: L:${data.L}, R:${data.R}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+      }
+
+      document.getElementById('funcBtn').addEventListener('mousedown', () => cmdSend('head_ct', 0, 0));
+      document.getElementById('funcBtn').addEventListener('mouseup', () => cmdSend('head_ct', 0, 0));
+      document.getElementById('moveSlowRight').addEventListener('mousedown', () => cmdJsonCmd({'T':'move','L':10,'R':50}));
+      document.getElementById('moveSlowRight').addEventListener('mouseup', () => cmdJsonCmd({'T':'move','L':0,'R':0}));
+      document.getElementById('moveForward').addEventListener('mousedown', () => cmdJsonCmd({'T':'move','L':50,'R':50}));
+      document.getElementById('moveForward').addEventListener('mouseup', () => cmdJsonCmd({'T':'move','L':0,'R':0}));
+
+      // Handle commands and chat
+      document.getElementById('sendButton').addEventListener('click', () => {
+        const input = document.getElementById('commandInput').value.trim();
+        const convo = document.getElementById('conversationWindow');
+        const apiKey = localStorage.getItem('openaiApiKey');
+
+        convo.innerHTML += `<p>You: ${input}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+
+        if (!apiKey && !input.startsWith('ros2')) {
+          alert('Please save your Open AI API key first!');
+          return;
+        }
+
+        // ROS2 Command Simulation
+        if (input.startsWith('ros2')) {
+          if (input.includes('gmapping.launch.py')) {
+            convo.innerHTML += `<p>System: Starting Gmapping 2D Mapping...</p>`;
+            socket.emit('ros2_command', input);
+          } else if (input.includes('cartographer.launch.py')) {
+            convo.innerHTML += `<p>System: Starting Cartographer 2D Mapping...</p>`;
+            socket.emit('ros2_command', input);
+          } else if (input.includes('rtabmap_rgbd.launch.py')) {
+            convo.innerHTML += `<p>System: Starting RTAB-Map 3D Mapping...</p>`;
+            socket.emit('ros2_command', input);
+          } else if (input.includes('save_2d_gmapping_map.sh')) {
+            convo.innerHTML += `<p>System: Saving Gmapping 2D Map...</p>`;
+            socket.emit('ros2_command', input);
+          } else if (input.includes('save_2d_cartographer_map.sh')) {
+            convo.innerHTML += `<p>System: Saving Cartographer 2D Map...</p>`;
+            socket.emit('ros2_command', input);
+          } else if (input.includes('teleop_twist_joy.launch.py')) {
+            convo.innerHTML += `<p>System: Starting Joystick Control...</p>`;
+            socket.emit('ros2_command', input);
+          } else if (input.includes('keyboard_ctrl')) {
+            convo.innerHTML += `<p>System: Starting Keyboard Control...</p>`;
+            socket.emit('ros2_command', input);
+          } else if (input.includes('oak_d_lite.launch.py')) {
+            convo.innerHTML += `<p>System: Enabling OAK Depth Camera...</p>`;
+            socket.emit('ros2_command', input);
+          }
+        } else {
+          // Open AI Chat and TTS
+          fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [{ role: 'user', content: input }],
+              max_tokens: 150
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            const responseText = data.choices[0].message.content;
+            convo.innerHTML += `<p>AI: ${responseText}</p>`;
+            convo.scrollTop = convo.scrollHeight;
+
+            // Open AI TTS
+            fetch('https://api.openai.com/v1/audio/speech', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${apiKey}`
+              },
+              body: JSON.stringify({
+                model: 'tts-1',
+                input: responseText,
+                voice: 'alloy'
+              })
+            })
+            .then(response => response.blob())
+            .then(blob => {
+              const audio = new Audio(URL.createObjectURL(blob));
+              audio.play();
+            })
+            .catch(error => console.error('TTS Error:', error));
+          })
+          .catch(error => {
+            console.error('Chat Error:', error);
+            convo.innerHTML += `<p>Error: Could not get response from AI.</p>`;
+            convo.scrollTop = convo.scrollHeight;
+          });
+        }
+
+        document.getElementById('commandInput').value = '';
+      });
+
+      // Simulated ROS2 response handler
+      socket.on('ros2_response', (response) => {
+        const convo = document.getElementById('conversationWindow');
+        convo.innerHTML += `<p>ROS2: ${response}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+      });
+    </script>
+</body>
+</html>
