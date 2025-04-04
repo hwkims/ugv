@@ -1,0 +1,249 @@
+<html lang="en-US">
+  <head>
+    <title>WAVESHARE ROBOT - UGV Beast PI ROS2</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/js-yaml/4.1.0/js-yaml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="./style.css">
+  </head>
+<body>
+    <main>
+        <div class="box1">
+            <section class="section_video box_outline">
+                <div class="video_feed">
+                    <div class="video"><img src="placeholder_video.jpg" alt="Video Feed" /></div>
+                </div>
+                <div class="controller">
+                    <div class="ctl9_middle">
+                        <div class="ctl9_middle_pos" 
+                             onmousedown="cmdSend('head_ct',0,0)" 
+                             ontouchstart="cmdSend('head_ct',0,0)" 
+                             onmouseup="cmdSend('head_ct',0,0)" 
+                             ontouchend="cmdSend('head_ct',0,0)">FUNC</div>
+                    </div>
+                    <div class="ctl9 ctl9_base">
+                        <ul>
+                            <li></li>
+                            <li class="ctl9_base_btn2" 
+                                onmousedown="cmdJsonCmd({'T':'move','L':50,'R':50})" 
+                                ontouchstart="cmdJsonCmd({'T':'move','L':50,'R':50})" 
+                                onmouseup="cmdJsonCmd({'T':'move','L':0,'R':0})" 
+                                ontouchend="cmdJsonCmd({'T':'move','L':0,'R':0})"></li>
+                            <li></li>
+                            <li class="ctl9_base_btn4" 
+                                onmousedown="cmdJsonCmd({'T':'move','L':-50,'R':50})" 
+                                ontouchstart="cmdJsonCmd({'T':'move','L':-50,'R':50})" 
+                                onmouseup="cmdJsonCmd({'T':'move','L':0,'R':0})" 
+                                ontouchend="cmdJsonCmd({'T':'move','L':0,'R':0})"></li>
+                            <li class="ctl9_base_btn" 
+                                onmousedown="cmdJsonCmd({'T':'move','L':10,'R':50})" 
+                                ontouchstart="cmdJsonCmd({'T':'move','L':10,'R':50})" 
+                                onmouseup="cmdJsonCmd({'T':'move','L':0,'R':0})" 
+                                ontouchend="cmdJsonCmd({'T':'move','L':0,'R':0})"></li>
+                            <li class="ctl9_base_btn6" 
+                                onmousedown="cmdJsonCmd({'T':'move','L':50,'R':-50})" 
+                                ontouchstart="cmdJsonCmd({'T':'move','L':50,'R':-50})" 
+                                onmouseup="cmdJsonCmd({'T':'move','L':0,'R':0})" 
+                                ontouchend="cmdJsonCmd({'T':'move','L':0,'R':0})"></li>
+                            <li></li>
+                            <li class="ctl9_base_btn8" 
+                                onmousedown="cmdJsonCmd({'T':'move','L':-50,'R':-50})" 
+                                ontouchstart="cmdJsonCmd({'T':'move','L':-50,'R':-50})" 
+                                onmouseup="cmdJsonCmd({'T':'move','L':0,'R':0})" 
+                                ontouchend="cmdJsonCmd({'T':'move','L':0,'R':0})"></li>
+                            <li></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="audio_input">
+                    <div class="audio-files">
+                        <div id="audioFiles" class="audio_list">
+                            <div id="audioFilesDrag" class="audio-drop">Drop audio files here!</div>
+                        </div>
+                    </div>
+                    <div class="mp3-controls">
+                        <button onclick="playMP3('1.mp3')">Play 1</button>
+                        <button onclick="playMP3('2.mp3')">Play 2</button>
+                        <button onclick="playMP3('3.mp3')">Play 3</button>
+                        <button onclick="playMP3('4.mp3')">Play 4</button>
+                        <button onclick="playMP3('5.mp3')">Play 5</button>
+                    </div>
+                </div>
+                <div class="code_input">
+                    <div>
+                        <div class="api-key-section">
+                            <input type="text" id="openaiApiKey" placeholder="Enter Open AI API Key">
+                            <button id="saveApiKey">Save Key</button>
+                            <div class="tts-toggle">
+                                <label for="ttsMode">TTS Mode:</label>
+                                <select id="ttsMode">
+                                    <option value="openai">Open AI TTS</option>
+                                    <option value="system">System TTS</option>
+                                </select>
+                            </div>
+                        </div>
+                        <textarea id="commandInput" placeholder="Enter Command or Chat (e.g., 'ros2 launch ugv_slam gmapping.launch.py use_rviz:=true')"></textarea>
+                        <div><button id="sendButton">Send</button></div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+    <div id="conversationWindow" class="conversation-window">
+        <p>Chat starts here...</p>
+    </div>
+    <script>
+      // Simulated WebSocket (실제 서버와 연결 필요)
+      const socket = {
+        emit: (event, data) => {
+          console.log(`Emitting ${event}: ${data}`);
+          setTimeout(() => {
+            socket.on('ros2_response', `Simulated response for ${data}`);
+          }, 1000);
+        },
+        on: (event, callback) => {
+          window.addEventListener(event, (e) => callback(e.detail));
+        }
+      };
+
+      // Load API key
+      const savedApiKey = localStorage.getItem('openaiApiKey');
+      if (savedApiKey) document.getElementById('openaiApiKey').value = savedApiKey;
+
+      // Save API key
+      document.getElementById('saveApiKey').addEventListener('click', () => {
+        const apiKey = document.getElementById('openaiApiKey').value.trim();
+        if (apiKey) {
+          localStorage.setItem('openaiApiKey', apiKey);
+          alert('API Key saved!');
+        } else {
+          alert('Please enter a valid API key.');
+        }
+      });
+
+      // Play MP3 on Robot
+      function playMP3(filename) {
+        const command = `audio -p ./audio/${filename}`;
+        socket.emit('ros2_command', command); // 로봇에서 재생 명령 전송
+        const convo = document.getElementById('conversationWindow');
+        convo.innerHTML += `<p>Sent to robot: Playing ${filename}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+      }
+
+      // Robot control commands
+      function cmdSend(cmd, param1, param2) {
+        const command = `${cmd} ${param1} ${param2}`;
+        socket.emit('ros2_command', command);
+        const convo = document.getElementById('conversationWindow');
+        convo.innerHTML += `<p>Command sent: ${command}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+      }
+
+      function cmdJsonCmd(data) {
+        const command = `move ${data.L} ${data.R}`;
+        socket.emit('ros2_command', command);
+        const convo = document.getElementById('conversationWindow');
+        convo.innerHTML += `<p>Movement command: L:${data.L}, R:${data.R}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+      }
+
+      // Handle commands and chat
+      document.getElementById('sendButton').addEventListener('click', () => {
+        const input = document.getElementById('commandInput').value.trim();
+        const convo = document.getElementById('conversationWindow');
+        const apiKey = localStorage.getItem('openaiApiKey');
+        const ttsMode = document.getElementById('ttsMode').value;
+
+        convo.innerHTML += `<p>You: ${input}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+
+        if (!apiKey && !input.startsWith('ros2') && !input.startsWith('audio')) {
+          alert('Please save your Open AI API key first!');
+          return;
+        }
+
+        if (input.startsWith('ros2') || input.startsWith('audio')) {
+          if (input.includes('gmapping.launch.py')) {
+            convo.innerHTML += `<p>System: Starting Gmapping 2D Mapping...</p>`;
+          } else if (input.includes('cartographer.launch.py')) {
+            convo.innerHTML += `<p>System: Starting Cartographer 2D Mapping...</p>`;
+          } else if (input.includes('rtabmap_rgbd.launch.py')) {
+            convo.innerHTML += `<p>System: Starting RTAB-Map 3D Mapping...</p>`;
+          } else if (input.includes('save_2d_gmapping_map.sh')) {
+            convo.innerHTML += `<p>System: Saving Gmapping 2D Map...</p>`;
+          } else if (input.includes('save_2d_cartographer_map.sh')) {
+            convo.innerHTML += `<p>System: Saving Cartographer 2D Map...</p>`;
+          } else if (input.includes('teleop_twist_joy.launch.py')) {
+            convo.innerHTML += `<p>System: Starting Joystick Control...</p>`;
+          } else if (input.includes('keyboard_ctrl')) {
+            convo.innerHTML += `<p>System: Starting Keyboard Control...</p>`;
+          } else if (input.includes('oak_d_lite.launch.py')) {
+            convo.innerHTML += `<p>System: Enabling OAK Depth Camera...</p>`;
+          } else if (input.startsWith('audio -p')) {
+            convo.innerHTML += `<p>System: Playing audio on robot...</p>`;
+          }
+          socket.emit('ros2_command', input);
+        } else {
+          fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${apiKey}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [{ role: 'user', content: input }],
+              max_tokens: 150
+            })
+          })
+          .then(response => response.json())
+          .then(data => {
+            const responseText = data.choices[0].message.content;
+            convo.innerHTML += `<p>AI: ${responseText}</p>`;
+            convo.scrollTop = convo.scrollHeight;
+
+            if (ttsMode === 'openai') {
+              fetch('https://api.openai.com/v1/audio/speech', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                  model: 'tts-1',
+                  input: responseText,
+                  voice: 'alloy'
+                })
+              })
+              .then(response => response.blob())
+              .then(blob => {
+                const audio = new Audio(URL.createObjectURL(blob));
+                audio.play();
+                convo.innerHTML += `<p>Playing response via Open AI TTS</p>`;
+              })
+              .catch(error => console.error('Open AI TTS Error:', error));
+            } else {
+              socket.emit('ros2_command', `audio -s "${responseText}"`);
+              convo.innerHTML += `<p>Sent to robot: Playing response via System TTS</p>`;
+            }
+          })
+          .catch(error => {
+            console.error('Chat Error:', error);
+            convo.innerHTML += `<p>Error: Could not get response from AI.</p>`;
+            convo.scrollTop = convo.scrollHeight;
+          });
+        }
+
+        document.getElementById('commandInput').value = '';
+      });
+
+      socket.on('ros2_response', (response) => {
+        const convo = document.getElementById('conversationWindow');
+        convo.innerHTML += `<p>ROS2: ${response}</p>`;
+        convo.scrollTop = convo.scrollHeight;
+      });
+    </script>
+</body>
+</html>
